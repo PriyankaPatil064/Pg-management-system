@@ -1,0 +1,53 @@
+type Room {
+  id: Int
+  room_number: String
+  capacity: Int
+  occupancy: Int
+  price: Float
+}
+
+type Guest {
+  id: Int
+  name: String
+  email: String
+  phone: String
+  room_id: Int
+  join_date: String
+}
+
+type Payment {
+  id: Int
+  guest_id: Int
+  amount: Float
+  payment_date: String
+  payment_method: String
+}
+
+type Query {
+  rooms: [Room]
+  room(id: Int): Room
+  guests: [Guest]
+  guest(id: Int): Guest
+  allPayments: [Payment]
+  payment(id: Int!): Payment
+  payments(guest_id: Int!): [Payment]
+}
+
+type Mutation {
+  createRoom(room_number: String!, capacity: Int!, price: Float!): Room
+  updateRoom(id: Int!, room_number: String!, capacity: Int!, price: Float!, occupancy: Int): Room
+  deleteRoom(id: Int!): Boolean
+
+  createGuest(name: String!, email: String!, phone: String, room_id: Int!): Guest
+  updateGuest(id: Int!, name: String!, email: String!, phone: String, room_id: Int!): Guest
+  deleteGuest(id: Int!): Boolean
+
+  createPayment(guest_id: Int!, amount: Float!, payment_method: String!): Payment
+  updatePayment(id: Int!, guest_id: Int!, amount: Float!, payment_method: String!): Payment
+  deletePayment(id: Int!): Boolean
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}
