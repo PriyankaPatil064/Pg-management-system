@@ -1,0 +1,28 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Environment files
+.env
+
+# Pprof profiles
+*.pb.gz
+*.prof
+pprof/
+
+# System files
+SERVER.EXE.APC.VIR
+.gemini/
+.agent/
+node_modules/
+dist/
+build/
