@@ -9,6 +9,7 @@ import (
 	"pg-management-system/internal/database"
 	"pg-management-system/internal/gql"
 	"pg-management-system/internal/handlers"
+	"pg-management-system/internal/middleware"
 
 	"net/http/pprof"
 
@@ -37,35 +38,43 @@ func main() {
 		w.Write([]byte("PG Management System is running"))
 	}).Methods("GET")
 
+	// Auth Routes
+	r.HandleFunc("/auth/google/login", handlers.GoogleLogin).Methods("GET")
+	r.HandleFunc("/auth/google/callback", handlers.GoogleCallback).Methods("GET")
+
+	// Protected API Routes
+	api := r.PathPrefix("/api").Subrouter()
+	api.Use(middleware.AuthMiddleware)
+
 	// Room Routes
-	r.HandleFunc("/rooms", handlers.CreateRoom).Methods("POST")
-	r.HandleFunc("/rooms", handlers.GetAllRooms).Methods("GET")
-	r.HandleFunc("/rooms/{id}", handlers.GetRoomByID).Methods("GET")
-	r.HandleFunc("/rooms/{id}", handlers.UpdateRoom).Methods("PUT")
-	r.HandleFunc("/rooms/{id}", handlers.DeleteRoom).Methods("DELETE")
+	api.HandleFunc("/rooms", handlers.CreateRoom).Methods("POST")
+	api.HandleFunc("/rooms", handlers.GetAllRooms).Methods("GET")
+	api.HandleFunc("/rooms/{id}", handlers.GetRoomByID).Methods("GET")
+	api.HandleFunc("/rooms/{id}", handlers.UpdateRoom).Methods("PUT")
+	api.HandleFunc("/rooms/{id}", handlers.DeleteRoom).Methods("DELETE")
 
 	// Guest Routes
-	r.HandleFunc("/guests", handlers.CreateGuest).Methods("POST")
-	r.HandleFunc("/guests", handlers.GetAllGuests).Methods("GET")
-	r.HandleFunc("/guests/{id}", handlers.GetGuestByID).Methods("GET")
-	r.HandleFunc("/guests/{id}", handlers.UpdateGuest).Methods("PUT")
-	r.HandleFunc("/guests/{id}", handlers.DeleteGuest).Methods("DELETE")
+	api.HandleFunc("/guests", handlers.CreateGuest).Methods("POST")
+	api.HandleFunc("/guests", handlers.GetAllGuests).Methods("GET")
+	api.HandleFunc("/guests/{id}", handlers.GetGuestByID).Methods("GET")
+	api.HandleFunc("/guests/{id}", handlers.UpdateGuest).Methods("PUT")
+	api.HandleFunc("/guests/{id}", handlers.DeleteGuest).Methods("DELETE")
 
 	// Payment Routes
-	r.HandleFunc("/payments", handlers.CreatePayment).Methods("POST")
-	r.HandleFunc("/payments", handlers.GetAllPayments).Methods("GET")
-	r.HandleFunc("/payments/{id}", handlers.GetPaymentByID).Methods("GET")
-	r.HandleFunc("/payments/{id}", handlers.UpdatePayment).Methods("PUT")
-	r.HandleFunc("/payments/{id}", handlers.DeletePayment).Methods("DELETE")
-	r.HandleFunc("/payments/guest/{id}", handlers.GetPaymentsByGuestID).Methods("GET")
+	api.HandleFunc("/payments", handlers.CreatePayment).Methods("POST")
+	api.HandleFunc("/payments", handlers.GetAllPayments).Methods("GET")
+	api.HandleFunc("/payments/{id}", handlers.GetPaymentByID).Methods("GET")
+	api.HandleFunc("/payments/{id}", handlers.UpdatePayment).Methods("PUT")
+	api.HandleFunc("/payments/{id}", handlers.DeletePayment).Methods("DELETE")
+	api.HandleFunc("/payments/guest/{id}", handlers.GetPaymentsByGuestID).Methods("GET")
 
-	// GraphQL Route
+	// GraphQL Route (Protected)
 	h := handler.New(&handler.Config{
 		Schema:   &gql.Schema,
 		Pretty:   true,
 		GraphiQL: true,
 	})
-	r.Handle("/graphql", h)
+	api.Handle("/graphql", h)
 
 	// Profiling Routes
 	r.HandleFunc("/debug/pprof/", pprof.Index)
@@ -107,7 +116,9 @@ func main() {
 	})
 
 	hWithCors := c.Handler(r)
-	if err := http.ListenAndServe(":"+port, hWithCors); err != nil {
-		log.Fatal(err)
+	log.Println("Attempting to listen on :" + port)
+	err := http.ListenAndServe(":"+port, hWithCors)
+	if err != nil {
+		log.Fatal("ListenAndServe error: ", err)
 	}
 }

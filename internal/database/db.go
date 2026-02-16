@@ -79,6 +79,15 @@ func InitSchema() {
 		payment_method VARCHAR(50)
 	);`
 
+	createUsersTable := `
+	CREATE TABLE IF NOT EXISTS users (
+		id SERIAL PRIMARY KEY,
+		email VARCHAR(100) UNIQUE NOT NULL,
+		name VARCHAR(100),
+		google_id VARCHAR(100) UNIQUE,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);`
+
 	if _, err := DB.Exec(createRoomsTable); err != nil {
 		log.Fatal("Failed to create rooms table:", err)
 	}
@@ -97,6 +106,10 @@ func InitSchema() {
 
 	if _, err := DB.Exec(createPaymentsTable); err != nil {
 		log.Fatal("Failed to create payments table:", err)
+	}
+
+	if _, err := DB.Exec(createUsersTable); err != nil {
+		log.Fatal("Failed to create users table:", err)
 	}
 
 	log.Println("Database schema initialized successfully!")
