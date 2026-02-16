@@ -2,27 +2,38 @@
 
 A high-performance microservice backend for managing Paying Guest (PG) facilities, built with Go and PostgreSQL.
 
-## Features
-- **Room Management**: CRUD operations for PG rooms.
-- **Guest Management**: Tracking guest details and room assignments.
-- **Payment Tracking**: Managing payments per guest.
-- **Performance Profiling**: Built-in `pprof` integration.
-- **GraphQL & REST API**: Flexible data access layers.
+## Authentication & Authorization
 
-## Tech Stack
-- **Language**: Go (Golang)
-- **Database**: PostgreSQL (Raw SQL with `pgx`)
-- **Routing**: `gorilla/mux`
-- **GraphQL**: `graphql-go`
-- **Profiling**: `net/http/pprof`
-- **CORS**: `rs/cors`
+The system uses JWT (JSON Web Tokens) for secure API access.
+
+### 1. Authentication Methods
+
+#### **A. Google OAuth 2.0**
+- **Endpoint**: `/auth/google/login`
+- **Flow**: Redirects user to Google for login. Upon success, Google redirects back to `/auth/google/callback`, which returns a JWT token.
+
+#### **B. Email & Password**
+- **Registration**: `POST /auth/register` (Email, Password, Name)
+- **Login**: `POST /auth/login` (Email, Password)
+- **Response**: Returns a JWT token upon successful authentication.
+
+### 2. Authorization (JWT)
+
+All `/api/*` and `/graphql` routes are protected. To access them, include the token in your request header:
+
+```http
+Authorization: Bearer <your_jwt_token_here>
+```
+
+- **Token Expiry**: 24 hours.
+- **Algorithm**: HS256.
 
 ## Project Structure
 - `cmd/server`: Main entry point.
-- `internal/database`: DB connection and schema initialization.
-- `internal/handlers`: HTTP request handlers.
+- `internal/database`: DB connection, schema, and repositories.
+- `internal/handlers`: HTTP handlers (Auth, Rooms, Guests, Payments).
+- `internal/middleware`: JWT authentication middleware.
 - `internal/models`: Data structures.
-- `internal/repository`: Data access layer.
 - `internal/gql`: GraphQL schema and resolvers.
 - `scripts`: Performance measurement and utility scripts.
 
@@ -59,8 +70,17 @@ Checked on: 2026-02-09
 1. **Environment Setup**:
    Create a `.env` file with:
    ```env
+   # Database
    DB_URL=postgres://user:password@localhost:5432/dbname
    PORT=8080
+
+   # Authentication
+   JWT_SECRET=your_super_secret_key
+   
+   # Google OAuth (Optional for local testing)
+   GOOGLE_CLIENT_ID=your_id
+   GOOGLE_CLIENT_SECRET=your_secret
+   GOOGLE_REDIRECT_URL=http://localhost:8080/auth/google/callback
    ```
 
 2. **Run Server**:
@@ -68,10 +88,18 @@ Checked on: 2026-02-09
    go run cmd/server/main.go
    ```
 
-3. **Measure Performance**:
-   ```bash
-   go run scripts/measure_performance.go
-   ```
+3. **API Examples**:
+   - **Login**:
+     ```bash
+     curl -X POST http://localhost:8080/auth/login \
+          -H "Content-Type: application/json" \
+          -d '{"email": "user@example.com", "password": "password123"}'
+     ```
+   - **Get Rooms (Authenticated)**:
+     ```bash
+     curl http://localhost:8080/api/rooms \
+          -H "Authorization: Bearer <TOKEN>"
+     ```
 
 ## Version Control
 This project uses Git for version control.
