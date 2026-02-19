@@ -25,7 +25,7 @@ func getGoogleOauthConfig() *oauth2.Config {
 const oauthStateString = "random_state_string" // In production, use a more secure state management
 
 func GoogleLogin(w http.ResponseWriter, r *http.Request) {
-	url := getGoogleOauthConfig().AuthCodeURL(oauthStateString)
+	url := getGoogleOauthConfig().AuthCodeURL(oauthStateString, oauth2.ApprovalForce)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
@@ -86,7 +86,7 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		user.GoogleID = googleUser.ID
 	}
 
-	jwtToken, err := GenerateToken(user.ID, user.Email, user.Name)
+	jwtToken, err := GenerateToken(user.ID, user.Email, user.Name, user.Role)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return

@@ -50,22 +50,26 @@ func main() {
 	api.HandleFunc("/rooms", handlers.CreateRoom).Methods("POST")
 	api.HandleFunc("/rooms", handlers.GetAllRooms).Methods("GET")
 	api.HandleFunc("/rooms/{id}", handlers.GetRoomByID).Methods("GET")
-	api.HandleFunc("/rooms/{id}", handlers.UpdateRoom).Methods("PUT")
-	api.HandleFunc("/rooms/{id}", handlers.DeleteRoom).Methods("DELETE")
+
+	adminOnly := api.PathPrefix("").Subrouter()
+	adminOnly.Use(middleware.RBAC("admin"))
+
+	adminOnly.HandleFunc("/rooms/{id}", handlers.UpdateRoom).Methods("PUT")
+	adminOnly.HandleFunc("/rooms/{id}", handlers.DeleteRoom).Methods("DELETE")
 
 	// Guest Routes
 	api.HandleFunc("/guests", handlers.CreateGuest).Methods("POST")
 	api.HandleFunc("/guests", handlers.GetAllGuests).Methods("GET")
 	api.HandleFunc("/guests/{id}", handlers.GetGuestByID).Methods("GET")
-	api.HandleFunc("/guests/{id}", handlers.UpdateGuest).Methods("PUT")
-	api.HandleFunc("/guests/{id}", handlers.DeleteGuest).Methods("DELETE")
+	adminOnly.HandleFunc("/guests/{id}", handlers.UpdateGuest).Methods("PUT")
+	adminOnly.HandleFunc("/guests/{id}", handlers.DeleteGuest).Methods("DELETE")
 
 	// Payment Routes
 	api.HandleFunc("/payments", handlers.CreatePayment).Methods("POST")
 	api.HandleFunc("/payments", handlers.GetAllPayments).Methods("GET")
 	api.HandleFunc("/payments/{id}", handlers.GetPaymentByID).Methods("GET")
-	api.HandleFunc("/payments/{id}", handlers.UpdatePayment).Methods("PUT")
-	api.HandleFunc("/payments/{id}", handlers.DeletePayment).Methods("DELETE")
+	adminOnly.HandleFunc("/payments/{id}", handlers.UpdatePayment).Methods("PUT")
+	adminOnly.HandleFunc("/payments/{id}", handlers.DeletePayment).Methods("DELETE")
 	api.HandleFunc("/payments/guest/{id}", handlers.GetPaymentsByGuestID).Methods("GET")
 
 	// GraphQL Route (Protected)

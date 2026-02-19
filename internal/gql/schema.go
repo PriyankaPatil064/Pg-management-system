@@ -1,14 +1,29 @@
 package gql
 
 import (
+	"errors"
 	"log"
 	"time"
 
 	"pg-management-system/internal/database"
+	"pg-management-system/internal/handlers"
+	"pg-management-system/internal/middleware"
 	"pg-management-system/internal/models"
 
 	"github.com/graphql-go/graphql"
 )
+
+// requireAdmin checks if the request context has an admin role
+func requireAdmin(p graphql.ResolveParams) error {
+	claims, ok := p.Context.Value(middleware.UserClaimsKey).(*handlers.Claims)
+	if !ok || claims == nil {
+		return errors.New("unauthorized: no valid session")
+	}
+	if claims.Role != "admin" {
+		return errors.New("forbidden: admin access required")
+	}
+	return nil
+}
 
 // Define Types
 // Define Types
@@ -146,6 +161,9 @@ var rootMutation = graphql.NewObject(graphql.ObjectConfig{
 				"price":       &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Float)},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				if err := requireAdmin(p); err != nil {
+					return nil, err
+				}
 				id := p.Args["id"].(int)
 				room := models.Room{
 					RoomNumber: p.Args["room_number"].(string),
@@ -169,6 +187,9 @@ var rootMutation = graphql.NewObject(graphql.ObjectConfig{
 				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Int)},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				if err := requireAdmin(p); err != nil {
+					return nil, err
+				}
 				id := p.Args["id"].(int)
 				err := database.DeleteRoom(id)
 				if err != nil {
@@ -212,6 +233,9 @@ var rootMutation = graphql.NewObject(graphql.ObjectConfig{
 				"room_id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Int)},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				if err := requireAdmin(p); err != nil {
+					return nil, err
+				}
 				id := p.Args["id"].(int)
 				guest := models.Guest{
 					Name:   p.Args["name"].(string),
@@ -233,6 +257,9 @@ var rootMutation = graphql.NewObject(graphql.ObjectConfig{
 				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Int)},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				if err := requireAdmin(p); err != nil {
+					return nil, err
+				}
 				id := p.Args["id"].(int)
 				err := database.DeleteGuest(id)
 				if err != nil {
@@ -273,6 +300,9 @@ var rootMutation = graphql.NewObject(graphql.ObjectConfig{
 				"payment_method": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				if err := requireAdmin(p); err != nil {
+					return nil, err
+				}
 				id := p.Args["id"].(int)
 				payment := models.Payment{
 					ID:            id,
@@ -294,6 +324,9 @@ var rootMutation = graphql.NewObject(graphql.ObjectConfig{
 				"id": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Int)},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				if err := requireAdmin(p); err != nil {
+					return nil, err
+				}
 				id := p.Args["id"].(int)
 				err := database.DeletePayment(id)
 				if err != nil {

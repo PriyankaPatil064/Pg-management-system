@@ -6,11 +6,11 @@ import (
 )
 
 func GetUserByEmail(email string) (*models.User, error) {
-	query := `SELECT id, email, name, google_id, created_at FROM users WHERE email = $1`
+	query := `SELECT id, email, name, google_id, role, created_at FROM users WHERE email = $1`
 	row := DB.QueryRow(query, email)
 
 	var user models.User
-	err := row.Scan(&user.ID, &user.Email, &user.Name, &user.GoogleID, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Email, &user.Name, &user.GoogleID, &user.Role, &user.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -21,8 +21,11 @@ func GetUserByEmail(email string) (*models.User, error) {
 }
 
 func CreateUser(user *models.User) error {
-	query := `INSERT INTO users (email, name, google_id) VALUES ($1, $2, $3) RETURNING id, created_at`
-	err := DB.QueryRow(query, user.Email, user.Name, user.GoogleID).Scan(&user.ID, &user.CreatedAt)
+	if user.Role == "" {
+		user.Role = "user"
+	}
+	query := `INSERT INTO users (email, name, google_id, role) VALUES ($1, $2, $3, $4) RETURNING id, created_at`
+	err := DB.QueryRow(query, user.Email, user.Name, user.GoogleID, user.Role).Scan(&user.ID, &user.CreatedAt)
 	return err
 }
 

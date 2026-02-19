@@ -10,6 +10,7 @@ import (
 type contextKey string
 
 const UserEmailKey contextKey = "user_email"
+const UserClaimsKey contextKey = "user_claims"
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -32,8 +33,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Add email to context for potential use in handlers
+		// Store email and full claims in context
 		ctx := context.WithValue(r.Context(), UserEmailKey, claims.Email)
+		ctx = context.WithValue(ctx, UserClaimsKey, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

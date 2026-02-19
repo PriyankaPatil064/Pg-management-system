@@ -4,7 +4,7 @@ A high-performance microservice backend for managing Paying Guest (PG) facilitie
 
 ## Authentication & Authorization
 
-The system uses JWT (JSON Web Tokens) for secure API access.
+The system uses JWT (JSON Web Tokens) for secure API access, with Role-Based Access Control (RBAC) enforced at the middleware layer.
 
 ### 1. Authentication Methods
 
@@ -17,25 +17,47 @@ The system uses JWT (JSON Web Tokens) for secure API access.
 - **Login**: `POST /auth/login` (Email, Password)
 - **Response**: Returns a JWT token upon successful authentication.
 
-### 2. Authorization (JWT)
+### 2. Authorization (JWT + RBAC)
 
-All `/api/*` and `/graphql` routes are protected. To access them, include the token in your request header:
+All `/api/*` and `/graphql` routes are protected by two middleware layers:
+
+1. **`AuthMiddleware`** — Validates the JWT and injects user claims (`email`, `role`, etc.) into the request context.
+2. **`RBAC(allowedRoles...)`** — Checks the user's role from the token claims against the allowed roles for the route.
+
+Include the token in your request header:
 
 ```http
 Authorization: Bearer <your_jwt_token_here>
 ```
 
-- **Token Expiry**: 24 hours.
+- **Token Expiry**: 1 hour.
 - **Algorithm**: HS256.
+- **JWT Claims**: `user_id`, `email`, `name`, `role`.
+
+### 3. Roles
+
+| Role    | Description                          |
+|---------|--------------------------------------|
+| `admin` | Full access to all routes            |
+| `user`  | Standard access (default on signup)  |
+
+- New users are assigned the `user` role by default.
+- Role is embedded in the JWT and validated on every protected request.
+- Routes can be restricted to specific roles using the `RBAC` middleware, e.g. `RBAC("admin")`.
 
 ## Project Structure
-- `cmd/server`: Main entry point.
-- `internal/database`: DB connection, schema, and repositories.
-- `internal/handlers`: HTTP handlers (Auth, Rooms, Guests, Payments).
-- `internal/middleware`: JWT authentication middleware.
-- `internal/models`: Data structures.
-- `internal/gql`: GraphQL schema and resolvers.
-- `scripts`: Performance measurement and utility scripts.
+
+```
+.
+├── cmd/server/          # Main entry point
+├── internal/
+│   ├── database/        # DB connection, schema, and repositories (rooms, guests, payments, users)
+│   ├── handlers/        # HTTP handlers (Auth, Rooms, Guests, Payments) + JWT utilities
+│   ├── middleware/       # AuthMiddleware (JWT validation) + RBAC (role enforcement)
+│   ├── models/          # Data structures (User, Room, Guest, Payment)
+│   └── gql/             # GraphQL schema and resolvers
+└── scripts/             # Performance measurement and utility scripts
+```
 
 ## Optimization Techniques
 
@@ -54,11 +76,11 @@ Authorization: Bearer <your_jwt_token_here>
 
 Checked on: 2026-02-09
 
-| Endpoint | Average Latency | Status |
-|----------|-----------------|--------|
-| `/health` | 4.31ms | PASS (< 200ms) |
-| `/rooms` | 2.52ms | PASS (< 200ms) |
-| `/guests` | 1.47ms | PASS (< 200ms) |
+| Endpoint  | Average Latency | Status           |
+|-----------|-----------------|------------------|
+| `/health` | 4.31ms          | PASS (< 200ms)   |
+| `/rooms`  | 2.52ms          | PASS (< 200ms)   |
+| `/guests` | 1.47ms          | PASS (< 200ms)   |
 
 ### CPU & Memory Profiling
 - **CPU Profiling**: Integrated at `/debug/pprof/profile`.
@@ -76,7 +98,7 @@ Checked on: 2026-02-09
 
    # Authentication
    JWT_SECRET=your_super_secret_key
-   
+
    # Google OAuth (Optional for local testing)
    GOOGLE_CLIENT_ID=your_id
    GOOGLE_CLIENT_SECRET=your_secret
@@ -89,6 +111,12 @@ Checked on: 2026-02-09
    ```
 
 3. **API Examples**:
+   - **Register**:
+     ```bash
+     curl -X POST http://localhost:8080/auth/register \
+          -H "Content-Type: application/json" \
+          -d '{"email": "user@example.com", "password": "password123", "name": "Alice"}'
+     ```
    - **Login**:
      ```bash
      curl -X POST http://localhost:8080/auth/login \
@@ -99,6 +127,11 @@ Checked on: 2026-02-09
      ```bash
      curl http://localhost:8080/api/rooms \
           -H "Authorization: Bearer <TOKEN>"
+     ```
+   - **Admin-only Route**:
+     ```bash
+     curl -X DELETE http://localhost:8080/api/rooms/1 \
+          -H "Authorization: Bearer <ADMIN_TOKEN>"
      ```
 
 ## Version Control
